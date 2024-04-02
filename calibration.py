@@ -24,6 +24,7 @@ def get_iHorizontalAngle(data):
     # 获取对应距离的数据
     for idx, data_per_idx in enumerate(data):
         usedData = []
+        tanList = []
         for i, distance in enumerate(data_per_idx):
             if 2060 <= distance <= 3640:
                 angle = i * lidarAngleStep
@@ -35,22 +36,32 @@ def get_iHorizontalAngle(data):
                 continue
         countNum = len(usedData) // 2
         for i in range(countNum):
-            l1 = usedData[i]
-            l2 = usedData[i + countNum]
-            h1 = usedData[i]
-            h2 = usedData[i + countNum]
-            theta = math.atan((h1 - h2) / (l1 - l2)) / math.pi * 180
-            usedData.append(theta)
-        average = sum(usedData) / len(usedData)
+            l1 = usedData[i][0]
+            l2 = usedData[i + countNum][0]
+            h1 = usedData[i][1]
+            h2 = usedData[i + countNum][1]
+            if l1 != l2:
+                theta = math.atan((h1 - h2) / (l1 - l2)) / math.pi * 180
+                tanList.append(theta)
+        if len(tanList) != 0:
+            average = sum(tanList) / len(tanList)
         # 最大值和最小值之差应该满足小于0.5度
-        while max(usedData) - min(usedData) > 0.5:
-            diff = [math.fabs(data - average) for data in usedData]
+        while max(tanList) - min(tanList) > 0.5:
+            diff = [math.fabs(tan - average) for tan in tanList]
             m = max(diff)
             index = diff.index(m)
-            value = usedData[index]
-            usedData.remove(value)
-            average = sum(usedData) / len(usedData)
+            value = tanList[index]
+            tanList.remove(value)
+            average = sum(tanList) / len(tanList)
         thetaList.append(average)
+    average = sum(thetaList) / len(thetaList)
+    while max(thetaList) - min(thetaList) > 0.5:
+        diff = [math.fabs(theta - average) for theta in thetaList]
+        m = max(diff)
+        index = diff.index(m)
+        value = tanList[index]
+        tanList.remove(value)
+        average = sum(tanList) / len(tanList)
     iHorizontalHeight = sum(thetaList) / len(thetaList)
     return iHorizontalHeight
 
@@ -77,16 +88,71 @@ def get_iHorizontalHeight(data, iHorizontalAngle):
                     usedData.append(h)
             else:
                 continue
-
+        average = sum(usedData) / len(usedData)
+        while max(usedData) - min(usedData) > 0.5:
+            diff = [math.fabs(data - average) for data in usedData]
+            m = max(diff)
+            index = diff.index(m)
+            value = usedData[index]
+            usedData.remove(value)
+            average = sum(usedData) / len(usedData)
         heightList.append(sum(usedData) / len(usedData))
+    average = sum(heightList) / len(heightList)
+    while max(heightList) - min(heightList) > 0.5:
+        diff = [math.fabs(height - average) for height in heightList]
+        m = max(diff)
+        index = diff.index(m)
+        value = heightList[index]
+        heightList.remove(value)
+        average = sum(heightList) / len(heightList)
+    iHorizontalHeight = - max(heightList) - 20
+    return iHorizontalHeight
 
-    iHorizontalHeight = sum(heightList) / len(heightList)
-    return  iHorizontalHeight
+
+def get_minDistance(data, iHorizontalAngle, iHorizontalHeight):
+    # 参与标定的帧数
+    dataSize = len(data)
+    minDistanceList = []
+    # 获取对应距离的数据
+    for idx, data_per_idx in enumerate(data):
+        usedData = []
+        for i, distance in enumerate(data_per_idx):
+            # 保证1.2m-3.5m是路面
+            if 0 <= distance <= 2000:
+                angle0 = i * lidarAngleStep
+                if angle0 < iHorizontalAngle:
+                    angle = iHorizontalAngle - angle0
+                    h = iHorizontalHeight - int(math.sin(math.radians(angle)) * distance)
+                    l = int(math.cos(math.fabs(angle) * math.pi / 180) * distance)
+                elif angle0 > iHorizontalAngle:
+                    angle = angle0 - iHorizontalAngle
+                    h = iHorizontalHeight + int(math.sin(math.radians(angle)) * distance)
+                    l = int(math.cos(math.fabs(angle) * math.pi / 180) * distance)
+                else:
+                    h = iHorizontalHeight
+                    l = distance
+                    usedData.append([l, h])
+            else:
+                continue
+        for l, h in usedData:
+            if 300 < l < 2500 and h < 0:
+                minDistanceList.append(l)
+                break
+    average = sum(minDistanceList) / len(minDistanceList)
+    while max(minDistanceList) - min(minDistanceList) > 50:
+        diff = [math.fabs(distance - average) for distance in minDistanceList]
+        m = max(diff)
+        index = diff.index(m)
+        value = minDistanceList[index]
+        minDistanceList.remove(value)
+        average = sum(minDistanceList) / len(minDistanceList)
+    return average
 
 
-def 
-
+def get_maxDistance(data, iHorizontalAngle, iHorizontalHeight, minDistance):
+    return minDistance + 3000
 
 
 
 if __name__ == '__main__':
+    pass
