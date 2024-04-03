@@ -1,4 +1,5 @@
 import os
+import socket
 
 
 
@@ -80,3 +81,7 @@ def readDatDG():
         binpc.tofile(savePath)
     return all_data
 
+
+if __name__ == '__main__':
+    cs = socket()
+    cs.connect()

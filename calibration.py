@@ -4,8 +4,10 @@ Algorithm for calibration
 '''
 import math
 import numpy as np
+from TCP import tcpClient
 
-lidarAngleStep = 0.25
+lidarAngleStep = 0.125
+lidarStartAngle = 35
 
 
 # data = [[distance1, distance2, distance3, ...], [distance1, distance2, distance3, ...],...]
@@ -27,8 +29,7 @@ def get_iHorizontalAngle(data):
         tanList = []
         for i, distance in enumerate(data_per_idx):
             if 2060 <= distance <= 3640:
-                angle = i * lidarAngleStep
-
+                angle = i * lidarAngleStep + lidarStartAngle
                 h = int(math.sin(math.radians(angle)) * distance)
                 l = int(math.cos(math.fabs(angle) * math.pi / 180) * distance)
                 usedData.append([l, h])
@@ -45,6 +46,8 @@ def get_iHorizontalAngle(data):
                 tanList.append(theta)
         if len(tanList) != 0:
             average = sum(tanList) / len(tanList)
+        else:
+            return 60
         # 最大值和最小值之差应该满足小于0.5度
         while max(tanList) - min(tanList) > 0.5:
             diff = [math.fabs(tan - average) for tan in tanList]
@@ -59,11 +62,12 @@ def get_iHorizontalAngle(data):
         diff = [math.fabs(theta - average) for theta in thetaList]
         m = max(diff)
         index = diff.index(m)
-        value = tanList[index]
-        tanList.remove(value)
-        average = sum(tanList) / len(tanList)
-    iHorizontalHeight = sum(thetaList) / len(thetaList)
-    return iHorizontalHeight
+        value = thetaList[index]
+        thetaList.remove(value)
+        average = sum(thetaList) / len(thetaList)
+    iHorizontalAngle = sum(thetaList) / len(thetaList)
+    return iHorizontalAngle
+
 
 def get_iHorizontalHeight(data, iHorizontalAngle):
     dataSize = len(data)
@@ -73,7 +77,7 @@ def get_iHorizontalHeight(data, iHorizontalAngle):
         for i, distance in enumerate(data_per_idx):
             # 保证1.2m-3.5m是路面
             if 2060 <= distance <= 3640:
-                angle0 = i * lidarAngleStep
+                angle0 = i * lidarAngleStep + lidarStartAngle
                 if angle0 < iHorizontalAngle:
                     angle = iHorizontalAngle - angle0
                     h = - int(math.sin(math.radians(angle)) * distance)
@@ -85,9 +89,11 @@ def get_iHorizontalHeight(data, iHorizontalAngle):
                 else:
                     h = 0
                     l = distance
-                    usedData.append(h)
+                usedData.append(h)
             else:
                 continue
+        if len(usedData) == 0:
+            return 1500
         average = sum(usedData) / len(usedData)
         while max(usedData) - min(usedData) > 0.5:
             diff = [math.fabs(data - average) for data in usedData]
@@ -138,6 +144,8 @@ def get_minDistance(data, iHorizontalAngle, iHorizontalHeight):
             if 300 < l < 2500 and h < 0:
                 minDistanceList.append(l)
                 break
+    if len(minDistanceList) == 0:
+        return 900
     average = sum(minDistanceList) / len(minDistanceList)
     while max(minDistanceList) - min(minDistanceList) > 50:
         diff = [math.fabs(distance - average) for distance in minDistanceList]
@@ -153,6 +161,8 @@ def get_maxDistance(data, iHorizontalAngle, iHorizontalHeight, minDistance):
     return minDistance + 3000
 
 
-
 if __name__ == '__main__':
-    pass
+    data = tcpClient()
+    angle, height, minl, maxl = calibration(data)
+    # 默认角度：60    默认高度：1500   默认最短距离：900
+    print(f"angle:{angle} height:{height} minL:{minl} maxl:{maxl}")
