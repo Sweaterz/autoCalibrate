@@ -44,8 +44,8 @@ def tcpClient():
                 msgLength, msgFlag, content, checksum = parseData(oneData)
                 points = parseContent(content)
                 pointsData.append(points)
-
     return pointsData
+
 
 def parseData(oneData):
     msgLength = oneData[4] + oneData[5] * 256
@@ -57,18 +57,20 @@ def parseData(oneData):
 
 def parseContent(content):
     points = []
+    deviceNum = "{:02X}{:02X}{:02X}{:02X}".format(content[3], content[2], content[1], content[0])
     frequency = (content[8] + content[9] * 256) * 0.01 # 50
     pointNum = content[10] + content[11] * 256 # 881
     startAngle = (content[12] + content[13] * 256 + content[14] * 256 * 256 + content[15] * 256 * 256 * 256) * 0.0001 # 35
     angleStep = content[16: 18] # 0.125
     versionFlag = content[18] # V1.0
-    flag = content[19] # 0   --关闭滤波
+    flag = content[19] # 0
+    #   --关闭滤波
     alarmWindowPollution = content[20] # 0 窗口污染预警
     inputSignal = content[21]
     reserve = content[22: 40]
     verticalAngle = content[40: 41]
-    pointsData = content[41: ]
-    # print(startAngle)
+    pointsData = content[41:]
+    print(deviceNum)
     for i in range(pointNum):
         distance = pointsData[2 * i] + pointsData[2 * i + 1] * 256
         points.append(distance)
@@ -85,5 +87,4 @@ def udpClient():
 
 if __name__ == '__main__':
     num = 0
-
     tcpClient()

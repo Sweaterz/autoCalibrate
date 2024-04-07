@@ -4,10 +4,10 @@ Algorithm for calibration
 '''
 import math
 import numpy as np
-from TCP import tcpClient
+from receiveLaserData import tcpClient
 
 lidarAngleStep = 0.125
-lidarStartAngle = 35
+lidarStartAngle = 0
 
 
 # data = [[distance1, distance2, distance3, ...], [distance1, distance2, distance3, ...],...]
@@ -24,10 +24,10 @@ def get_iHorizontalAngle(data):
     dataSize = len(data)
     thetaList = []
     # 获取对应距离的数据
-    for idx, data_per_idx in enumerate(data):
+    for idx, data_per_id in enumerate(data):
         usedData = []
         tanList = []
-        for i, distance in enumerate(data_per_idx):
+        for i, distance in enumerate(data_per_id):
             if 2060 <= distance <= 3640:
                 angle = i * lidarAngleStep + lidarStartAngle
                 h = int(math.sin(math.radians(angle)) * distance)
@@ -44,6 +44,14 @@ def get_iHorizontalAngle(data):
             if l1 != l2:
                 theta = math.atan((h1 - h2) / (l1 - l2)) / math.pi * 180
                 tanList.append(theta)
+        # for i in range(len(usedData) - 10):
+        #     l1 = usedData[i][0]
+        #     l2 = usedData[i + 10][0]
+        #     h1 = usedData[i][1]
+        #     h2 = usedData[i + 10][1]
+        #     if l1 != l2:
+        #         theta = math.atan((h1 - h2) / (l1 - l2)) / math.pi * 180
+        #         tanList.append(theta)
         if len(tanList) != 0:
             average = sum(tanList) / len(tanList)
         else:
@@ -65,6 +73,7 @@ def get_iHorizontalAngle(data):
         value = thetaList[index]
         thetaList.remove(value)
         average = sum(thetaList) / len(thetaList)
+    print(thetaList)
     iHorizontalAngle = sum(thetaList) / len(thetaList)
     return iHorizontalAngle
 
@@ -125,7 +134,7 @@ def get_minDistance(data, iHorizontalAngle, iHorizontalHeight):
         for i, distance in enumerate(data_per_idx):
             # 保证1.2m-3.5m是路面
             if 0 <= distance <= 2000:
-                angle0 = i * lidarAngleStep
+                angle0 = i * lidarAngleStep + lidarStartAngle
                 if angle0 < iHorizontalAngle:
                     angle = iHorizontalAngle - angle0
                     h = iHorizontalHeight - int(math.sin(math.radians(angle)) * distance)
