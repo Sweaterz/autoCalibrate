@@ -2,10 +2,12 @@
 Algorithm for calibration
 用于自动标定的算法
 '''
+
+
 import math
 import numpy as np
 from receiveLaserData import tcpClient
-
+from plotPoints import point
 lidarAngleStep = 0.125
 lidarStartAngle = 0
 
@@ -73,7 +75,6 @@ def get_iHorizontalAngle(data):
         value = thetaList[index]
         thetaList.remove(value)
         average = sum(thetaList) / len(thetaList)
-    print(thetaList)
     iHorizontalAngle = sum(thetaList) / len(thetaList)
     return iHorizontalAngle
 
@@ -146,7 +147,7 @@ def get_minDistance(data, iHorizontalAngle, iHorizontalHeight):
                 else:
                     h = iHorizontalHeight
                     l = distance
-                    usedData.append([l, h])
+                usedData.append([l, h])
             else:
                 continue
         for l, h in usedData:
@@ -172,6 +173,9 @@ def get_maxDistance(data, iHorizontalAngle, iHorizontalHeight, minDistance):
 
 if __name__ == '__main__':
     data = tcpClient()
+
     angle, height, minl, maxl = calibration(data)
-    # 默认角度：60    默认高度：1500   默认最短距离：900
+    # 默认角度：60    默认高度：1500   默认最短距离：900   默认最长距离: 1200
     print(f"angle:{angle} height:{height} minL:{minl} maxl:{maxl}")
+
+    point(data, angle, height)

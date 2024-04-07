@@ -1,3 +1,7 @@
+'''
+此函数包含了杜格激光雷达3000的TCP接收和数据的解析
+
+'''
 import socket
 
 
@@ -13,6 +17,11 @@ MAX_LISTEN = 5
 
 def tcpServer():
     pass
+
+
+'''
+return [[distance1, distance2,...], [distance1, distance2, distance3,...], ...]
+'''
 
 
 def tcpClient():
@@ -70,7 +79,7 @@ def parseContent(content):
     reserve = content[22: 40]
     verticalAngle = content[40: 41]
     pointsData = content[41:]
-    print(deviceNum)
+    # print(deviceNum)
     for i in range(pointNum):
         distance = pointsData[2 * i] + pointsData[2 * i + 1] * 256
         points.append(distance)
