@@ -1,13 +1,14 @@
-'''
+"""
 Algorithm for calibration
 用于自动标定的算法
-'''
+"""
 
 
 import math
 import numpy as np
 from receiveLaserData import tcpClient
 from plotPoints import point
+
 lidarAngleStep = 0.125
 lidarStartAngle = 0
 
