@@ -15,17 +15,22 @@ BUFFSIZE = 2048
 MAX_LISTEN = 5
 
 
+# Lidar 270mini parameter
+lidarAngleStep = 0.25
+startAngleDiff = 105
+
+
 def tcpServer():
     pass
 
 
 '''
-return [[distance1, distance2,...], [distance1, distance2, distance3,...], ...]
+output: pointsData :[[distance1, distance2,...], [distance1, distance2, distance3,...], ...]
+return 0 normal:0 error:1
 '''
 
 
 def tcpClient():
-
     with socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM) as s:
         # 尝试连接客户套接字
         s.connect(ADDR)
@@ -87,13 +92,65 @@ def parseContent(content):
     return points
 
 
+"""
+用于杜格270mini的接收程序
+"""
+
+
 def udpClient():
+    use_data = []
+    oneLoopData = []
+    pointsData = []
+    server_address = ('192.168.1.201', 2368)
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        while True:
-            recvData, addrs = s.recvfrom(BUFFSIZE)
-            print('recv message : {}'.format(recvData.decode('utf-8')))
+        s.bind(server_address)
+        print("Server is starting on {} port {}".format(*server_address))
+        while len(use_data) < 50:
+            # recvData, addrs = s.recvfrom(BUFFSIZE)
+            # print('recv message : {}'.format(recvData.decode('utf-8')))
+
+            # Receive response
+            # print('waiting to receive')
+            data, address = s.recvfrom(4096)
+            # print('received {} bytes from {}'.format(len(data), address))
+            # print('message: {}'.format(data))
+            if data[2] == 0 and data[3] == 0:
+                if len(oneLoopData) == 8 * 1206:
+                    use_data.append(oneLoopData)
+                    points = parse270Content(oneLoopData)
+                    pointsData.append(points)
+                    oneLoopData.clear()
+            oneLoopData += data
+    return pointsData
+
+
+def parse270Content(oneLoopData):
+    points = []
+    if len(oneLoopData) < 30:
+        print("this 270mini data is not right! please check it! ")
+        return -1
+
+    for i in range(0, 8):
+        onePackage = oneLoopData[i * 1206: (i+1) * 1206]
+        for j in range(12):
+            startId = j * 100
+            if onePackage[startId] != 255 or onePackage[startId+1] != 238:
+                continue
+            startAngle = (int(onePackage[startId+3])*256 + int(onePackage[startId+2])) / 100
+            for z in range(startId+4, startId+100, 6):
+                distance = int(onePackage[z+1]) * 256 + int(onePackage[z])
+                if distance < 30:
+                    continue
+                id = (z - startId - 4 + 6) / 6
+                pointIdx = startId * 16 + id
+                angle = startAngle + lidarAngleStep * id - startAngleDiff
+                points.append([angle, distance])
+    return points
 
 
 if __name__ == '__main__':
     num = 0
-    tcpClient()
+    # tcpClient()
+    data = udpClient()
+    pass
+    # print(len(udpClient()))
